@@ -253,8 +253,6 @@ const UuidGeneratorTool = () => {
     const [version, setVersion] = useState<'v4' | 'v1' | 'v7'>('v4');
     const [count, setCount] = useState(1);
     const [format, setFormat] = useState<'standard' | 'uppercase' | 'braces' | 'noHyphens'>('standard');
-    const [namespace, setNamespace] = useState('');
-    const [name, setName] = useState('');
 
     // Generate UUID v4 (random)
     const generateUuidV4 = (): string => {
@@ -293,23 +291,6 @@ const UuidGeneratorTool = () => {
         return `${timestampHex.slice(0, 8)}-${timestampHex.slice(8)}-7${randomAHex}-${randomBHex.slice(0, 4)}-${randomBHex.slice(4, 16)}`;
     };
 
-    // Generate UUID v5 (name-based with SHA-1, simplified)
-    const generateUuidV5 = async (namespace: string, name: string): Promise<string> => {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(namespace + name);
-
-        try {
-            const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-            return `${hashHex.slice(0, 8)}-${hashHex.slice(8, 12)}-5${hashHex.slice(13, 16)}-${hashHex.slice(16, 20)}-${hashHex.slice(20, 32)}`;
-        } catch {
-            // Fallback to v4 if crypto not available
-            return generateUuidV4();
-        }
-    };
-
     const generateUuid = (selectedVersion: string = version): string => {
         switch (selectedVersion) {
             case 'v1':
@@ -340,16 +321,7 @@ const UuidGeneratorTool = () => {
         for (let i = 0; i < count; i++) {
             let uuid: string;
 
-            if (version === 'v4' || version === 'v1' || version === 'v7') {
-                uuid = generateUuid(version);
-            } else {
-                // For v5, use name and namespace if provided
-                if (namespace && name) {
-                    uuid = await generateUuidV5(namespace, name + i);
-                } else {
-                    uuid = generateUuid('v4'); // fallback
-                }
-            }
+            uuid = generateUuid(version);
 
             newUuids.push(formatUuid(uuid));
         }
@@ -906,7 +878,7 @@ const ListDiffTool = () => {
         return processed;
     };
 
-    const formatOutput = (items: string[], type: string): string => {
+    const formatOutput = (items: string[]): string => {
         let formatted = items;
 
         if (sortResults) {
@@ -972,7 +944,7 @@ const ListDiffTool = () => {
     };
 
     const moveResultToList = (items: string[], targetList: 'list1' | 'list2') => {
-        const formatted = formatOutput(items, 'move');
+        const formatted = formatOutput(items);
         if (targetList === 'list1') {
             setList1(formatted);
         } else {
@@ -1226,7 +1198,7 @@ const ListDiffTool = () => {
                                 </h4>
                                 <div className="flex gap-1">
                                     <button
-                                        onClick={() => copyToClipboard(formatOutput(result.onlyInList1, 'copy'))}
+                                        onClick={() => copyToClipboard(formatOutput(result.onlyInList1))}
                                         className="px-2 py-1 text-xs bg-red-200 text-red-700 rounded hover:bg-red-300"
                                         title="Copy A Only"
                                     >
@@ -1274,7 +1246,7 @@ const ListDiffTool = () => {
                                 </h4>
                                 <div className="flex gap-1">
                                     <button
-                                        onClick={() => copyToClipboard(formatOutput(result.intersection, 'copy'))}
+                                        onClick={() => copyToClipboard(formatOutput(result.intersection))}
                                         className="px-2 py-1 text-xs bg-green-200 text-green-700 rounded hover:bg-green-300"
                                         title="Copy Intersection"
                                     >
@@ -1322,7 +1294,7 @@ const ListDiffTool = () => {
                                 </h4>
                                 <div className="flex gap-1">
                                     <button
-                                        onClick={() => copyToClipboard(formatOutput(result.onlyInList2, 'copy'))}
+                                        onClick={() => copyToClipboard(formatOutput(result.onlyInList2))}
                                         className="px-2 py-1 text-xs bg-blue-200 text-blue-700 rounded hover:bg-blue-300"
                                         title="Copy B Only"
                                     >
@@ -1370,7 +1342,7 @@ const ListDiffTool = () => {
                                 </h4>
                                 <div className="flex gap-1">
                                     <button
-                                        onClick={() => copyToClipboard(formatOutput(result.union, 'copy'))}
+                                        onClick={() => copyToClipboard(formatOutput(result.union))}
                                         className="px-2 py-1 text-xs bg-purple-200 text-purple-700 rounded hover:bg-purple-300"
                                         title="Copy Union"
                                     >
@@ -1772,8 +1744,6 @@ const JsonPathTesterTool = () => {
 const JsonDiffTool = () => {
     const [json1, setJson1] = useState('');
     const [json2, setJson2] = useState('');
-    const [parsedJson1, setParsedJson1] = useState<any>(null);
-    const [parsedJson2, setParsedJson2] = useState<any>(null);
     const [error1, setError1] = useState('');
     const [error2, setError2] = useState('');
     const [diffResult, setDiffResult] = useState<any>(null);
@@ -1922,9 +1892,6 @@ const JsonDiffTool = () => {
         const parsed1 = parseJson(json1, setError1);
         const parsed2 = parseJson(json2, setError2);
 
-        setParsedJson1(parsed1);
-        setParsedJson2(parsed2);
-
         if (parsed1 !== null && parsed2 !== null) {
             const differences = deepCompare(parsed1, parsed2);
             setDiffResult({
@@ -1937,16 +1904,9 @@ const JsonDiffTool = () => {
         }
     };
 
-    const formatJsonForDisplay = (obj: any): string => {
-        if (obj === null || obj === undefined) return '';
-        return JSON.stringify(obj, null, 2);
-    };
-
     const clearAll = () => {
         setJson1('');
         setJson2('');
-        setParsedJson1(null);
-        setParsedJson2(null);
         setError1('');
         setError2('');
         setDiffResult(null);
