@@ -4,7 +4,7 @@ A comprehensive collection of quality assurance and testing tools for developers
 
 ## 🚀 Live Demo
 
-Visit the live application: [QA Tools Suite](https://your-username.github.io/qa-tools/)
+Visit the live application: [QA Tools Suite](https://balajilinks.github.io/qa-tools/)
 
 ## 🛠️ Features
 
